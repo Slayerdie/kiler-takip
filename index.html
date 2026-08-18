@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#176b5b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Kiler Takip" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="stylesheet" href="./app.css" />
+  <title>Kiler Takip</title>
+</head>
+<body>
+  <div id="toast" class="toast" role="status"></div>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">EV ENVANTERİ</div>
+        <h1>Kiler Takip</h1>
+      </div>
+      <button id="memberBtn" class="member-chip" type="button">👤 Emre</button>
+    </header>
+
+    <section class="hero card">
+      <div>
+        <h2>Ne var, nerede?</h2>
+        <p>Fotoğrafını çek, yerine kaydet, gerektiğinde saniyeler içinde bul.</p>
+      </div>
+      <button id="heroAddBtn" class="round-add" aria-label="Yeni eşya ekle">＋</button>
+    </section>
+
+    <section class="search-row">
+      <input id="searchInput" class="search-input" type="search" autocomplete="off" placeholder="Kavanoz, deterjan, makarna…" />
+      <button id="filterBtn" class="icon-btn" type="button" title="Filtreler">⚙︎</button>
+    </section>
+
+    <section class="stats-grid" aria-label="Özet">
+      <button class="stat card" data-view="all"><strong id="statTotal">0</strong><span>Toplam</span></button>
+      <button class="stat card warn" data-view="soon"><strong id="statSoon">0</strong><span>Yaklaşan</span></button>
+      <button class="stat card danger" data-view="expired"><strong id="statExpired">0</strong><span>Geçen</span></button>
+      <button class="stat card" data-view="locations"><strong id="statLocations">0</strong><span>Konum</span></button>
+    </section>
+
+    <section class="toolbar">
+      <div>
+        <div class="eyebrow">LİSTE</div>
+        <h2 id="viewTitle">Tüm eşyalar</h2>
+      </div>
+      <button id="sortBtn" class="text-btn" type="button">A–Z</button>
+    </section>
+
+    <section id="itemList" class="item-list"></section>
+
+    <section id="emptyState" class="empty card hidden">
+      <div class="empty-icon">📦</div>
+      <h3>Henüz kayıt yok</h3>
+      <p>İlk eşyanı fotoğrafıyla ekleyerek başlayabilirsin.</p>
+      <button id="emptyAddBtn" class="primary-btn" type="button">İlk eşyayı ekle</button>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Ana menü">
+    <button class="nav-btn active" data-nav="home"><span>⌂</span><small>Ana Sayfa</small></button>
+    <button class="nav-btn" data-nav="locations"><span>⌖</span><small>Konumlar</small></button>
+    <button id="navAddBtn" class="nav-add" aria-label="Yeni ekle">＋</button>
+    <button class="nav-btn" data-nav="expiry"><span>◷</span><small>Tarihler</small></button>
+    <button class="nav-btn" data-nav="more"><span>•••</span><small>Daha Fazla</small></button>
+  </nav>
+
+  <dialog id="itemDialog" class="sheet-dialog">
+    <form id="itemForm" method="dialog" class="sheet" novalidate>
+      <div class="sheet-grabber"></div>
+      <div class="sheet-head">
+        <div><div class="eyebrow" id="itemDialogEyebrow">YENİ KAYIT</div><h2 id="itemDialogTitle">Eşya ekle</h2></div>
+        <button class="close-btn" value="cancel" formnovalidate aria-label="Kapat">×</button>
+      </div>
+      <input type="hidden" id="itemId" />
+
+      <div class="photo-picker" id="itemPhotoBox">
+        <img id="itemPhotoPreview" alt="Eşya fotoğrafı" class="photo-preview hidden" />
+        <div id="itemPhotoPlaceholder"><span class="camera">📷</span><strong>Fotoğraf çek</strong><small>Ürünü veya eşyayı net göster</small></div>
+        <input id="itemPhotoInput" type="file" accept="image/*" capture="environment" />
+      </div>
+
+      <label class="field"><span>Adı *</span><input id="itemName" required maxlength="80" placeholder="Örn. Boş kavanozlar" /></label>
+      <div class="two-col">
+        <label class="field"><span>Kategori</span><select id="itemCategory"><option>Eşya</option><option>Yiyecek</option><option>İçecek</option><option>Temizlik</option><option>Kişisel bakım</option><option>Alet / Malzeme</option><option>Diğer</option></select></label>
+        <label class="field"><span>Miktar</span><input id="itemQuantity" maxlength="30" placeholder="Örn. 6 adet" /></label>
+      </div>
+      <label class="field"><span>Bulunduğu yer *</span><select id="itemLocation" required></select></label>
+      <button id="quickLocationBtn" class="secondary-btn full" type="button">＋ Yeni konum oluştur</button>
+      <label class="field"><span>Son kullanma tarihi <em>isteğe bağlı</em></span><input id="itemExpiry" type="date" /></label>
+      <label class="field"><span>Not</span><textarea id="itemNotes" maxlength="300" placeholder="Örn. Küçük kapaklar arka poşette"></textarea></label>
+      <div class="two-col compact">
+        <label class="field"><span>Ekleyen</span><select id="itemOwner"><option>Emre</option><option>Betül</option></select></label>
+        <label class="field"><span>Durum</span><select id="itemStatus"><option value="active">Aktif</option><option value="used">Tükendi / Çıkarıldı</option></select></label>
+      </div>
+      <div class="form-actions">
+        <button id="deleteItemBtn" class="danger-btn hidden" type="button">Sil</button>
+        <button class="primary-btn grow" type="submit">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="locationDialog" class="sheet-dialog">
+    <form id="locationForm" method="dialog" class="sheet" novalidate>
+      <div class="sheet-grabber"></div>
+      <div class="sheet-head">
+        <div><div class="eyebrow">KONUM</div><h2 id="locationDialogTitle">Yeni konum</h2></div>
+        <button class="close-btn" value="cancel" formnovalidate aria-label="Kapat">×</button>
+      </div>
+      <input id="locationId" type="hidden" />
+      <div class="photo-picker location-photo">
+        <img id="locationPhotoPreview" alt="Konum fotoğrafı" class="photo-preview hidden" />
+        <div id="locationPhotoPlaceholder"><span class="camera">📍</span><strong>Rafın fotoğrafını çek</strong><small>Ararken görsel olarak bulmayı kolaylaştırır</small></div>
+        <input id="locationPhotoInput" type="file" accept="image/*" capture="environment" />
+      </div>
+      <label class="field"><span>Konum adı *</span><input id="locationName" required maxlength="80" placeholder="Örn. Kiler > Sağ dolap > Raf 2" /></label>
+      <label class="field"><span>Kısa kod</span><input id="locationCode" maxlength="12" placeholder="Otomatik oluşturulur" /></label>
+      <label class="field"><span>Not</span><textarea id="locationNotes" maxlength="200" placeholder="Örn. Mavi kasanın arkasında"></textarea></label>
+      <div id="locationQrArea" class="qr-card hidden">
+        <div><strong>QR etiketi</strong><small>iPhone Kamera ile okutunca bu konumu açar.</small></div>
+        <img id="qrImage" alt="Konum QR kodu" />
+        <small id="qrPrivacyNote">QR görseli hazırlanırken yalnızca konum kodu QR servis sağlayıcısına gönderilir.</small>
+      </div>
+      <div class="form-actions">
+        <button id="deleteLocationBtn" class="danger-btn hidden" type="button">Sil</button>
+        <button class="primary-btn grow" type="submit">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detailDialog" class="sheet-dialog">
+    <div class="sheet">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-head">
+        <div><div class="eyebrow">EŞYA DETAYI</div><h2 id="detailName">Detay</h2></div>
+        <button class="close-btn" id="detailCloseBtn" aria-label="Kapat">×</button>
+      </div>
+      <div id="detailBody"></div>
+      <div class="form-actions"><button id="editItemBtn" class="secondary-btn grow" type="button">Düzenle</button><button id="markUsedBtn" class="primary-btn grow" type="button">Tükendi / Çıkar</button></div>
+    </div>
+  </dialog>
+
+  <dialog id="moreDialog" class="sheet-dialog">
+    <div class="sheet">
+      <div class="sheet-grabber"></div>
+      <div class="sheet-head"><div><div class="eyebrow">AYARLAR</div><h2>Daha fazla</h2></div><button class="close-btn" id="moreCloseBtn">×</button></div>
+      <div class="menu-list">
+        <button id="exportBtn" class="menu-row"><span>⬇️</span><div><strong>Yedek al</strong><small>Tüm kayıtları ve fotoğrafları JSON dosyasına aktar</small></div></button>
+        <label class="menu-row file-row"><span>⬆️</span><div><strong>Yedeği geri yükle</strong><small>Daha önce alınmış JSON yedeğini içe aktar</small></div><input id="importInput" type="file" accept="application/json,.json" /></label>
+        <button id="installHelpBtn" class="menu-row"><span>📲</span><div><strong>iPhone’a yükleme</strong><small>Ana ekrana uygulama olarak ekleme adımları</small></div></button>
+        <button id="syncInfoBtn" class="menu-row"><span>☁️</span><div><strong>Aile senkronizasyonu</strong><small>Emre ve Betül aynı veriyi kullansın</small></div></button>
+        <button id="demoBtn" class="menu-row"><span>🧪</span><div><strong>Örnek kayıt ekle</strong><small>Uygulamayı denemek için birkaç örnek oluştur</small></div></button>
+      </div>
+      <div class="version">Kiler Takip v1.0.0 · Yerel ilk sürüm</div>
+    </div>
+  </dialog>
+
+  <dialog id="infoDialog" class="center-dialog">
+    <div class="info-card">
+      <button id="infoCloseBtn" class="close-btn floating">×</button>
+      <div id="infoContent"></div>
+    </div>
+  </dialog>
+
+  <script src="./db.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
