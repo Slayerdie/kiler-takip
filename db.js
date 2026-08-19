@@ -4,6 +4,7 @@ const KilerDB = (() => {
   const DB_VERSION = 1;
   let dbPromise;
   let opened = false;
+  let authModulePromise;
 
   function localOpen(){
     if(dbPromise) return dbPromise;
@@ -19,6 +20,22 @@ const KilerDB = (() => {
       req.onerror=()=>reject(req.error);
     });
     return dbPromise;
+  }
+
+  function ensureAuthModule(){
+    if(USE_LOCAL || window.KilerAuth) return Promise.resolve(true);
+    if(authModulePromise) return authModulePromise;
+    authModulePromise=new Promise((resolve,reject)=>{
+      if(!document.querySelector('link[data-kiler-auth]')){
+        const link=document.createElement('link');
+        link.rel='stylesheet';link.href='./auth.css?v=130';link.dataset.kilerAuth='1';document.head.appendChild(link);
+      }
+      const script=document.createElement('script');
+      script.src='./auth.js?v=130';script.dataset.kilerAuth='1';
+      script.onload=()=>resolve(true);script.onerror=()=>reject(new Error('Giriş modülü yüklenemedi.'));
+      document.head.appendChild(script);
+    });
+    return authModulePromise;
   }
 
   async function remoteRequest(path, options={}, retried=false){
@@ -41,6 +58,7 @@ const KilerDB = (() => {
   async function open(){
     if(USE_LOCAL) return localOpen();
     if(opened) return true;
+    await ensureAuthModule();
     if(window.KilerAuth?.ready) await window.KilerAuth.ready;
     const health = await remoteRequest('/health');
     if(!health?.ok) throw new Error('Kiler sunucusuna ulaşılamıyor.');
