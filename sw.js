@@ -1,4 +1,4 @@
-const CACHE='kiler-takip-v1.1.2';
+const CACHE='kiler-takip-v1.2.0';
 const ASSETS=['./','./index.html','./app.css','./location-builder.css','./db.js','./app.js','./location-builder.js','./ui-fixes.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 
 self.addEventListener('install',e=>{
@@ -16,7 +16,11 @@ self.addEventListener('fetch',e=>{
   const url=new URL(e.request.url);
   if(url.origin!==location.origin) return;
 
-  // Uygulama dosyalarında önce ağ: güncellemeler hemen gelsin.
+  if(url.pathname.startsWith('/api/')){
+    e.respondWith(fetch(e.request,{cache:'no-store'}));
+    return;
+  }
+
   if(e.request.mode==='navigate' || /\.(html|js|css|webmanifest)$/.test(url.pathname)){
     e.respondWith(
       fetch(e.request,{cache:'no-store'})
@@ -30,7 +34,6 @@ self.addEventListener('fetch',e=>{
     return;
   }
 
-  // Görsellerde önbellek öncelikli.
   e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request).then(r=>{
     const copy=r.clone();
     caches.open(CACHE).then(c=>c.put(e.request,copy));
