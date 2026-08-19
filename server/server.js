@@ -11,13 +11,16 @@ const PORT = Number(process.env.PORT || 8080);
 const DATA_DIR = process.env.DATA_DIR || '/data';
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const STORES = new Set(['items', 'locations', 'settings']);
-const AUTH_USER = process.env.KILER_USER || 'emre';
-const AUTH_HASH = process.env.KILER_PASSWORD_HASH || '';
 const SESSION_SECRET = process.env.KILER_SESSION_SECRET || '';
 const SESSION_DAYS = Math.max(1, Number(process.env.KILER_SESSION_DAYS || 180));
 const SESSION_MS = SESSION_DAYS * 24 * 60 * 60 * 1000;
 
-if (!AUTH_HASH || !SESSION_SECRET) {
+const USERS = {
+  emre: { displayName: 'Emre', hash: process.env.KILER_PASSWORD_HASH || '' },
+  betul: { displayName: 'Betül', hash: process.env.KILER_BETUL_PASSWORD_HASH || '' }
+};
+
+if (!USERS.emre.hash || !SESSION_SECRET) {
   console.error('KILER_PASSWORD_HASH and KILER_SESSION_SECRET are required.');
   process.exit(1);
 }
@@ -83,6 +86,7 @@ function verifyToken(token) {
   try {
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     if (!payload?.user || !payload?.exp || Date.now() > payload.exp) return null;
+    if (!USERS[payload.user]?.hash) return null;
     return payload;
   } catch {
     return null;
@@ -116,27 +120,33 @@ function validStore(req, res, next) {
   next();
 }
 
+function publicUser(user) {
+  const account = USERS[user];
+  return account ? { user, displayName: account.displayName } : null;
+}
+
 app.get('/api/health', (_req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json({ ok: true, app: 'Kiler Takip', mode: 'server', version: '1.3.0' });
+  res.json({ ok: true, app: 'Kiler Takip', mode: 'server', version: '1.4.0' });
 });
 
 app.get('/api/auth/me', (req, res) => {
   res.set('Cache-Control', 'no-store');
   const session = currentSession(req);
   if (!session) return res.status(401).json({ authenticated: false });
-  res.json({ authenticated: true, user: session.user });
+  res.json({ authenticated: true, ...publicUser(session.user) });
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  const user = String(req.body?.user || '').trim();
+  const user = String(req.body?.user || '').trim().toLocaleLowerCase('tr-TR');
   const password = String(req.body?.password || '');
-  if (user !== AUTH_USER || !(await bcrypt.compare(password, AUTH_HASH))) {
+  const account = USERS[user];
+  if (!account?.hash || !(await bcrypt.compare(password, account.hash))) {
     await new Promise(r => setTimeout(r, 450));
     return res.status(401).json({ error: 'invalid_credentials' });
   }
   setSessionCookie(res, user);
-  res.json({ ok: true, user, sessionDays: SESSION_DAYS });
+  res.json({ ok: true, ...publicUser(user), sessionDays: SESSION_DAYS });
 });
 
 app.post('/api/auth/logout', (_req, res) => {
@@ -166,6 +176,9 @@ app.put('/api/:store/:key', validStore, (req, res) => {
   const value = req.body;
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return res.status(400).json({ error: 'invalid_json' });
+  }
+  if (req.params.store === 'items' && !value.owner) {
+    value.owner = USERS[req.sessionUser]?.displayName || req.sessionUser;
   }
   putOne.run(req.params.store, req.params.key, JSON.stringify(value), Date.now());
   res.json(value);
