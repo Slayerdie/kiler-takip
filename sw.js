@@ -1,4 +1,4 @@
-const CACHE='kiler-takip-v1.3.0';
+const CACHE='kiler-takip-v1.4.0';
 const ASSETS=['./','./index.html','./app.css','./auth.css','./auth.js','./location-builder.css','./db.js','./app.js','./location-builder.js','./ui-fixes.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 
 self.addEventListener('install',e=>{
