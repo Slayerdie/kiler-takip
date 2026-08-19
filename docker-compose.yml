@@ -11,13 +11,21 @@ services:
       - NODE_ENV=production
       - PORT=8080
       - DATA_DIR=/data
-      - KILER_USER=${KILER_USER:-emre}
+      - KILER_USER=${KILER_USER}
       - KILER_PASSWORD_HASH=${KILER_PASSWORD_HASH}
       - KILER_SESSION_SECRET=${KILER_SESSION_SECRET}
       - KILER_SESSION_DAYS=${KILER_SESSION_DAYS:-180}
+    networks:
+      - default
+      - idealist-proxy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+
+networks:
+  idealist-proxy:
+    external: true
+    name: idealist-proxy
