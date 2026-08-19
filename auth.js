@@ -1,6 +1,8 @@
 (() => {
   const IS_LOCAL = location.hostname.endsWith('github.io') || location.protocol === 'file:';
   let pendingResolve = null;
+  let current = null;
+  let identityObserver = null;
 
   function ensureUi(){
     if(document.getElementById('authGate')) return;
@@ -12,7 +14,7 @@
       <h1>Kiler Takip</h1>
       <p>Ev envanterine güvenli erişim</p>
       <form id="authForm" autocomplete="on">
-        <label class="auth-field"><span>Kullanıcı adı</span><input id="authUser" name="username" autocomplete="username" value="emre" required></label>
+        <label class="auth-field"><span>Kullanıcı adı</span><input id="authUser" name="username" autocomplete="username" placeholder="emre veya betul" required></label>
         <label class="auth-field"><span>Parola</span><input id="authPassword" name="password" type="password" autocomplete="current-password" required></label>
         <button id="authSubmit" class="auth-submit" type="submit">Giriş Yap</button>
         <div id="authError" class="auth-error"></div>
@@ -23,12 +25,33 @@
     gate.querySelector('#authForm').addEventListener('submit',login);
   }
 
-  function show(){ensureUi();document.getElementById('authGate').classList.remove('hidden');setTimeout(()=>document.getElementById('authPassword')?.focus(),100)}
+  function show(){ensureUi();document.getElementById('authGate').classList.remove('hidden');setTimeout(()=>document.getElementById('authUser')?.focus(),100)}
   function hide(){document.getElementById('authGate')?.classList.add('hidden')}
+
+  function applyIdentity(){
+    if(!current?.displayName) return;
+    const chip=document.getElementById('memberBtn');
+    if(chip && chip.textContent !== '👤 '+current.displayName) chip.textContent='👤 '+current.displayName;
+    const owner=document.getElementById('itemOwner');
+    if(owner){
+      if(![...owner.options].some(o=>o.value===current.displayName)) owner.add(new Option(current.displayName,current.displayName));
+      owner.value=current.displayName;
+      owner.disabled=true;
+    }
+  }
+
+  function watchIdentity(){
+    applyIdentity();
+    if(identityObserver) return;
+    identityObserver=new MutationObserver(()=>applyIdentity());
+    identityObserver.observe(document.documentElement,{childList:true,subtree:true});
+    document.addEventListener('submit',e=>{if(e.target?.id==='itemForm')applyIdentity()},true);
+  }
 
   async function check(){
     const r=await fetch('/api/auth/me',{cache:'no-store',credentials:'same-origin'});
-    if(r.ok){const data=await r.json();return data}
+    if(r.ok){const data=await r.json();current=data;watchIdentity();return data}
+    current=null;
     return null;
   }
 
@@ -42,8 +65,10 @@
     try{
       const r=await fetch('/api/auth/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({user,password})});
       if(!r.ok){err.textContent='Kullanıcı adı veya parola hatalı.';return}
+      current=await r.json();
       document.getElementById('authPassword').value='';
       hide();
+      watchIdentity();
       if(pendingResolve){pendingResolve(true);pendingResolve=null}
     }catch(_){err.textContent='Sunucuya ulaşılamadı. İnternet bağlantını kontrol et.'}
     finally{btn.disabled=false;btn.textContent='Giriş Yap'}
@@ -83,6 +108,6 @@
     addLogoutButton();
   });
 
-  window.KilerAuth={ready,requireLogin,logout};
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',addLogoutButton); else addLogoutButton();
+  window.KilerAuth={ready,requireLogin,logout,get currentUser(){return current}};
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{addLogoutButton();watchIdentity()}); else {addLogoutButton();watchIdentity()}
 })();
