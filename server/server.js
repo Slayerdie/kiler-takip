@@ -177,7 +177,7 @@ app.put('/api/:store/:key', validStore, (req, res) => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return res.status(400).json({ error: 'invalid_json' });
   }
-  if (req.params.store === 'items' && !value.owner) {
+  if (req.params.store === 'items') {
     value.owner = USERS[req.sessionUser]?.displayName || req.sessionUser;
   }
   putOne.run(req.params.store, req.params.key, JSON.stringify(value), Date.now());
