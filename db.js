@@ -21,12 +21,17 @@ const KilerDB = (() => {
     return dbPromise;
   }
 
-  async function remoteRequest(path, options={}){
+  async function remoteRequest(path, options={}, retried=false){
     const res = await fetch('/api'+path, {
       cache:'no-store',
+      credentials:'same-origin',
       headers:{'Content-Type':'application/json', ...(options.headers||{})},
       ...options
     });
+    if(res.status===401 && !retried && window.KilerAuth?.requireLogin){
+      await window.KilerAuth.requireLogin();
+      return remoteRequest(path, options, true);
+    }
     if(res.status===404) return undefined;
     if(!res.ok) throw new Error(`Kiler sunucu hatası (${res.status})`);
     if(res.status===204) return undefined;
@@ -36,6 +41,7 @@ const KilerDB = (() => {
   async function open(){
     if(USE_LOCAL) return localOpen();
     if(opened) return true;
+    if(window.KilerAuth?.ready) await window.KilerAuth.ready;
     const health = await remoteRequest('/health');
     if(!health?.ok) throw new Error('Kiler sunucusuna ulaşılamıyor.');
     opened = true;
