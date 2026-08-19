@@ -1,5 +1,5 @@
-const CACHE='kiler-takip-v1.2.0';
-const ASSETS=['./','./index.html','./app.css','./location-builder.css','./db.js','./app.js','./location-builder.js','./ui-fixes.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
+const CACHE='kiler-takip-v1.3.0';
+const ASSETS=['./','./index.html','./app.css','./auth.css','./auth.js','./location-builder.css','./db.js','./app.js','./location-builder.js','./ui-fixes.js','./manifest.webmanifest','./icons/icon-192.png','./icons/icon-512.png'];
 
 self.addEventListener('install',e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
@@ -17,7 +17,7 @@ self.addEventListener('fetch',e=>{
   if(url.origin!==location.origin) return;
 
   if(url.pathname.startsWith('/api/')){
-    e.respondWith(fetch(e.request,{cache:'no-store'}));
+    e.respondWith(fetch(e.request,{cache:'no-store',credentials:'same-origin'}));
     return;
   }
 
